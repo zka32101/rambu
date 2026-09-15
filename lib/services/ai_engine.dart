@@ -6,6 +6,7 @@ import 'package:rambu_shogi/models/board.dart';
 import 'package:rambu_shogi/models/game_session.dart';
 import 'package:rambu_shogi/models/move.dart';
 import 'package:rambu_shogi/models/piece.dart';
+import 'package:rambu_shogi/services/evaluation_params.dart';
 import 'package:rambu_shogi/services/game_logic.dart';
 import 'package:rambu_shogi/utils/constants.dart';
 
@@ -15,7 +16,25 @@ class AIEngine {
   final math.Random _random = math.Random();
   int _evaluationCount = 0;
 
-  AIEngine({this.difficulty = Difficulty.normal});
+  /// 評価パラメータ（Phase 2でのバランス調整用）
+  /// nullの場合はEvaluationConstantsから取得
+  late final EvaluationParams _params;
+
+  AIEngine({
+    this.difficulty = Difficulty.normal,
+    EvaluationParams? params,
+  }) {
+    _params = params ?? _getDefaultParams();
+  }
+
+  /// 難易度に応じたデフォルトパラメータを取得
+  EvaluationParams _getDefaultParams() {
+    // Phase 2では baseline を使用（後で調整予定）
+    return EvaluationParams.baseline;
+  }
+
+  /// 現在使用中のパラメータを取得
+  EvaluationParams get params => _params;
 
   /// 最善手を探す
   Move findBestMove(GameSession game) {
@@ -152,11 +171,11 @@ class AIEngine {
     // 3. 位置評価スコア
     score += _evaluatePositionValues(board);
 
-    // 4. テンポボーナス
+    // 4. テンポボーナス（パラメータから取得）
     if (game.currentPlayer == PlayerColor.sente) {
-      score += EvaluationConstants.tempoBonus;
+      score += _params.tempoBonus;
     } else {
-      score -= EvaluationConstants.tempoBonus;
+      score -= _params.tempoBonus;
     }
 
     // 5. クリティカル局面の特殊評価
@@ -274,7 +293,7 @@ class AIEngine {
 
       // 相手の王に隣接する駒配置
       if (kingPos != null && piecePos.chebyshevDistanceTo(kingPos) <= 1) {
-        final bonus = EvaluationConstants.criticalAdjacentBonus;
+        final bonus = _params.criticalAdjacentBonus * _params.criticalSituationCoefficient;
         if (piece.player == PlayerColor.sente) {
           score += bonus;
         } else {
@@ -291,7 +310,7 @@ class AIEngine {
           if (targetPiece != null &&
               targetPiece.player != piece.player &&
               targetPiece.currentHP <= 1) {
-            final bonus = EvaluationConstants.criticalDamageBonus;
+            final bonus = _params.criticalDamageBonus * _params.criticalSituationCoefficient;
             if (piece.player == PlayerColor.sente) {
               score += bonus;
             } else {
@@ -303,7 +322,7 @@ class AIEngine {
 
       // 自駒のHP満タン
       if (piece.currentHP == piece.maxHP && piece.type != PieceType.king) {
-        final bonus = EvaluationConstants.fullHPBonus;
+        final bonus = _params.fullHPBonus * _params.criticalSituationCoefficient;
         if (piece.player == PlayerColor.sente) {
           score += bonus;
         } else {
@@ -314,7 +333,7 @@ class AIEngine {
       // 相手駒のHP1（一撃死寸前）
       if (piece.type == PieceType.king) continue;
       if (piece.currentHP == 1) {
-        final bonus = EvaluationConstants.enemyLowHPBonus;
+        final bonus = _params.enemyLowHPBonus * _params.criticalSituationCoefficient;
         if (piece.player == PlayerColor.gote) {
           // 後手の弱い駒 = 先手に有利
           score += bonus;

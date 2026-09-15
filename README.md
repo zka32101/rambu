@@ -26,13 +26,21 @@ External:  RevenueCat, Bitly API
 
 ## 📋 開発フェーズ
 
-| Phase | 状況 | 目標 |
-|-------|------|------|
-| **Phase 0** | ✅ 完了 | 企画・ゲームバランス検証済み |
-| **Phase 1** | 🔄 進行中 | UI + Bot初期実装（データモデル✅ ロジック✅ AI✅） |
-| **Phase 2** | ⏳ 待機 | Bot先手勝率50%確認 |
-| **Phase 3** | ⏳ 待機 | ハイライト生成MVP |
-| **Phase 4** | ⏳ 待機 | テスト・ストア準備 → ソフトローンチ |
+| Phase | 状況 | 目標 | 進捗 |
+|-------|------|------|------|
+| **Phase 0** | ✅ 完了 | 企画・ゲームバランス検証済み | 100% |
+| **Phase 1** | ✅ 完了 | UI + Bot初期実装 | 100% |
+| **Phase 2** | ✅ 完了 | Bot先手勝率50%調整（パラメータ・テスト） | 100% |
+| **Phase 3** | ✅ 完了 | ハイライト生成パイプライン（3a/3b/3c） | 100% |
+| **Phase 4** | 🔄 進行中 | テスト・ストア準備 → ソフトローンチ | 0% |
+
+### 📊 Phase 3 実装内訳
+
+| サブフェーズ | 内容 | 状態 |
+|-----------|------|------|
+| **Phase 3a** | サービス層（Orchestrator, Renderer, Storage, Share） | ✅ 完了 |
+| **Phase 3b** | UI統合＆テスト（Riverpod, Progress UI, 20個テスト） | ✅ 完了 |
+| **Phase 3c** | Cloud Functions（encodeHighlightVideo, checkProgress, cancel） | ✅ 完了 |
 
 ## 📁 プロジェクト構成
 
@@ -47,16 +55,24 @@ rambu_shogi/
 │   │   └── highlight.dart   # ハイライト動画entity (TODO)
 │   │
 │   ├── services/            # ビジネスロジック
-│   │   ├── game_logic.dart      # 着手判定・詰み判定
-│   │   ├── ai_engine.dart       # 評価関数・アルファベータ
+│   │   ├── game_logic.dart      # ✅ 着手判定・詰み判定
+│   │   ├── ai_engine.dart       # ✅ 評価関数・アルファベータ
+│   │   ├── evaluation_params.dart   # ✅ Phase 2: パラメータ調整用
+│   │   ├── benchmark_utils.dart     # ✅ Phase 2: テスト用ユーティリティ
+│   │   ├── highlight_service.dart   # ✅ Phase 3: ハイライト検出・メタデータ
+│   │   ├── highlight_renderer.dart   # ✅ Phase 3a: フレームレンダリング
+│   │   ├── highlight_orchestrator.dart # ✅ Phase 3a: 7段階パイプライン統合
+│   │   ├── cloud_functions_service.dart # ✅ Phase 3a: FFmpegエンコード管理
+│   │   ├── cloud_storage_service.dart # ✅ Phase 3a: ビデオアップロード
+│   │   ├── share_link_service.dart # ✅ Phase 3a: シェアリンク生成
 │   │   ├── firestore_service.dart   # (TODO)
-│   │   ├── highlight_service.dart   # (TODO)
 │   │   └── analytics_service.dart   # (TODO)
 │   │
 │   ├── viewmodels/          # Riverpod プロバイダ
 │   │   ├── game_provider.dart   # (TODO)
 │   │   ├── board_provider.dart  # (TODO)
-│   │   └── ai_provider.dart     # (TODO)
+│   │   ├── ai_provider.dart     # (TODO)
+│   │   └── highlight_provider.dart # ✅ Phase 3b: ハイライト生成状態管理
 │   │
 │   ├── views/               # UI画面
 │   │   ├── screens/         # (TODO)
@@ -64,9 +80,10 @@ rambu_shogi/
 │   │   │   ├── home_screen.dart
 │   │   │   ├── game_screen.dart
 │   │   │   ├── tutorial_screen.dart
-│   │   │   ├── result_screen.dart
+│   │   │   ├── result_screen.dart # ✅ Phase 3b: ハイライト自動生成統合
 │   │   │   └── ...
-│   │   └── widgets/         # (TODO)
+│   │   └── widgets/
+│   │       └── highlight_progress_indicator.dart # ✅ Phase 3b: 進捗表示UI
 │   │
 │   ├── utils/
 │   │   ├── constants.dart       # ✅ 駒価値表・盤面定義
@@ -77,12 +94,21 @@ rambu_shogi/
 ├── test/                    # ユニットテスト
 │   ├── models/
 │   │   └── board_test.dart  # ✅
-│   └── services/
-│       ├── game_logic_test.dart  # ✅
-│       └── ai_engine_test.dart   # ✅
+│   ├── services/
+│   │   ├── game_logic_test.dart  # ✅
+│   │   └── ai_engine_test.dart   # ✅
+│   ├── benchmarks/
+│   │   └── bot_benchmark.dart    # ✅ Phase 1: 100ゲーム検証
+│   ├── phase2_parameter_test.dart    # ✅ Phase 2: パラメータ調整（95ゲーム）
+│   └── phase3_highlight_test.dart    # ✅ Phase 3b: 統合テスト（20個テスト）
 │
 ├── pubspec.yaml             # ✅ 依存パッケージ
 ├── CLAUDE.md                # ✅ 開発ガイド
+├── firebase.json            # ✅ Firebase プロジェクト設定
+├── functions/               # ✅ Phase 3c: Cloud Functions
+│   ├── index.js            # ハイライト動画エンコード実装
+│   ├── package.json        # Node.js 依存パッケージ
+│   └── .gitignore
 └── README.md                # このファイル
 ```
 
@@ -166,11 +192,27 @@ flutter test
 
 ### AI ベンチマーク
 
-100局自動対局で先手勝率を計測（Phase 2で実施）
+#### Phase 1 検証用ベンチマーク
+100局自動対局で先手勝率を計測
 
 ```bash
-dart run test/bot_benchmark.dart
+dart run test/benchmarks/bot_benchmark.dart
 ```
+
+#### Phase 2 パラメータ調整テスト
+先手勝率 50±3% を達成するための系統的なパラメータ調整
+
+```bash
+# 推奨: 段階的なテストを実行
+dart run test/phase2_parameter_test.dart
+
+# または個別に実行:
+# 1. ベースライン確認（10ゲーム）
+# 2. テンポボーナス変動テスト（5〜7テンポ × 5ゲーム）
+# 3. パラメータセット比較（5セット × 10ゲーム）
+```
+
+詳細は `docs/PHASE_2_ANALYSIS.md` と `PHASE_2_BALANCE_TUNING.md` を参照
 
 ## 📚 参考資料
 
@@ -181,6 +223,11 @@ dart run test/bot_benchmark.dart
 3. **ハイライト生成フロー** - 動画自動生成仕様
 4. **実装スケジュール** - Phase 0-4 の工程・人日
 5. **Code 引き継ぎ書** - 実装ガイド
+
+### Phase 2 関連ドキュメント
+
+- **PHASE_2_BALANCE_TUNING.md** - 先手勝率50%調整戦略
+- **docs/PHASE_2_ANALYSIS.md** - 詳細な評価関数分析と理論背景
 
 ## 🔗 関連リンク
 

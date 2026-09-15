@@ -1,0 +1,114 @@
+default_platform(:android)
+
+platform :android do
+  desc "🚀 Build and upload to Google Play Console (Internal Testing)"
+  lane :deploy_internal do
+    # ビルド
+    sh("flutter clean")
+    sh("flutter pub get")
+    sh("flutter build appbundle --release")
+
+    # Google Play にアップロード
+    upload_to_play_store(
+      package_name: "com.rambusgame.shogi",
+      json_key: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"] || "service-account-key.json",
+      aab: "build/app/outputs/bundle/release/app-release.aab",
+      track: "internal",
+      status: "draft",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    puts("✅ Internal track にアップロード完了")
+  end
+
+  desc "🚀 Build and upload to Google Play Console (Closed Beta)"
+  lane :deploy_beta do
+    sh("flutter clean")
+    sh("flutter pub get")
+    sh("flutter build appbundle --release")
+
+    upload_to_play_store(
+      package_name: "com.rambusgame.shogi",
+      json_key: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"] || "service-account-key.json",
+      aab: "build/app/outputs/bundle/release/app-release.aab",
+      track: "beta",
+      status: "draft",
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+
+    puts("✅ Beta track にアップロード完了")
+  end
+
+  desc "🚀 Build and upload to Google Play Console (Production)"
+  lane :deploy_production do
+    # 確認プロンプト
+    if is_ci
+      puts("CI 環境で実行中")
+    else
+      UI.confirm("本番環境にリリースします。よろしいですか？")
+    end
+
+    sh("flutter clean")
+    sh("flutter pub get")
+    sh("flutter build appbundle --release")
+
+    # メタデータをアップロード
+    upload_to_play_store(
+      package_name: "com.rambusgame.shogi",
+      json_key: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"] || "service-account-key.json",
+      aab: "build/app/outputs/bundle/release/app-release.aab",
+      track: "production",
+      status: "draft",  # 手動でレビューして「リリース」をクリック
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false
+    )
+
+    puts("✅ Production track にアップロード完了")
+    puts("⚠️  Google Play Console で内容確認後、「リリース」をクリックしてください")
+  end
+
+  desc "🧪 Test fastlane setup"
+  lane :test_setup do
+    puts("✅ Fastlane セットアップ確認:")
+    puts("  Package: com.rambusgame.shogi")
+    puts("  Service Account: #{ENV['GOOGLE_PLAY_SERVICE_ACCOUNT_JSON']}")
+
+    if File.exist?(ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"] || "service-account-key.json")
+      puts("  ✅ Service Account JSON が存在します")
+    else
+      puts("  ❌ Service Account JSON が見つかりません")
+    end
+  end
+end
+
+# iOS の場合
+platform :ios do
+  desc "🍎 Build and upload to TestFlight"
+  lane :deploy_testflight do
+    build_app(
+      workspace: "ios/Runner.xcworkspace",
+      scheme: "Runner",
+      configuration: "Release",
+      derived_data_path: "build/",
+      destination: "generic/platform=iOS",
+      export_method: "app-store",
+      export_options: {
+        teamID: ENV["APPSTORE_TEAM_ID"],
+        provisioningProfileSpecifier: "match AppStore",
+        signingStyle: "automatic"
+      }
+    )
+
+    upload_to_testflight(
+      api_key_path: ENV["APPSTORE_CONNECT_KEY_PATH"],
+      ipa: "build/Runner.ipa"
+    )
+
+    puts("✅ TestFlight にアップロード完了")
+  end
+end

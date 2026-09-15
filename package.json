@@ -1,0 +1,27 @@
+{
+  "name": "rambu_shogi",
+  "version": "1.0.0",
+  "description": "乱舞将棋 - HP制と飛び道具を持つ観戦映え特化の将棋バリアント",
+  "scripts": {
+    "deploy:release": "bash scripts/deploy-release.sh",
+    "build:apk": "flutter build apk --release --split-per-abi",
+    "build:aab": "flutter build appbundle --release",
+    "build:all": "npm run build:aab && npm run build:apk",
+    "firebase:deploy": "firebase deploy --only functions --project rambusgame-prod",
+    "firebase:config:update": "firebase firestore:import --project=rambusgame-prod",
+    "test": "flutter test",
+    "analyze": "flutter analyze",
+    "clean": "flutter clean && flutter pub get",
+    "setup:keystore": "mkdir -p ~/.android_keys && echo 'キーストアを ~/.android_keys/rambu_shogi.keystore に配置してください'",
+    "setup:env": "test -f .env || cp .env.example .env && echo '✅ .env 作成完了。環境変数を設定してください'",
+    "doc:build": "flutter pub global activate dartdoc && dartdoc",
+    "lint": "flutter analyze && flutter format --set-exit-if-changed lib/",
+    "ci:build": "flutter build appbundle --release && firebase deploy --only functions"
+  },
+  "devDependencies": {
+    "firebase-tools": "^13.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
